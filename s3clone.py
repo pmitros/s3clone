@@ -65,10 +65,17 @@ for item in items:
 
 count  = 0
 for item in items:
-    if item.name not in directories:
-        task_queue.put(item, -item.size)
-        count = count + 1
-        size = size + item.size
+    # S3 can't tell me if something is a bucket. 
+    # I used 3 heuristics. I think the first two might be sufficient. 
+    if item.name in directories:
+        continue
+    if item.name.endswith('/'):
+        continue
+    if item.content_type == 'application/x-directory':
+        continue
+    task_queue.put(item, -item.size)
+    count = count + 1
+    size = size + item.size
     
 total_size = size
 
