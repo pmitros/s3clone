@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import threading
 import time
 import Queue
@@ -52,6 +53,7 @@ def worker():
                 size = size - item.size
         except:
             print "Download of ", item, "failed"
+            print sys.exc_info()[0]
         task_queue.task_done()
 
 print "Queuing bucket..."

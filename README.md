@@ -8,10 +8,13 @@ parallel.
 
 Usage: 
 
-   s3clone [bucketname]
+    s3clone [bucketname]
 
 Optionally, you can specify a number of worker threads. By default,
 this is 100.
 
-For this to work, your AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY or
-EC2_ACCESS_KEY_ID/EC2_SECRET_ACCESS_KEY must be set correctly.
+This code works for me. It is not well tested, and no guarantees it
+will work for you. In particular: 
+
+ * When things fail, error messages are not at all useful. 
+ * Your AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY must be set correctly.
