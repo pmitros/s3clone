@@ -34,7 +34,7 @@ def download(key):
         os.makedirs(os.path.dirname(key.name))
     except: 
         pass 
-    if not os.path.exists(key.name):
+    if not os.path.exists(key.name) and key.content_type != 'application/x-directory':
         key.get_contents_to_filename(key.name)
 
 task_queue = Queue.PriorityQueue()
