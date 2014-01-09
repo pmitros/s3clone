@@ -34,7 +34,7 @@ def download(key):
         os.makedirs(os.path.dirname(key.name))
     except: 
         pass 
-    if not os.path.exists(key.name) and key.content_type != 'application/x-directory':
+    if not os.path.exists(key.name):
         key.get_contents_to_filename(key.name)
 
 task_queue = Queue.PriorityQueue()
@@ -58,11 +58,17 @@ def worker():
 
 print "Queuing bucket..."
 
+directories = set()
+
+for item in items:
+    directories.add(os.path.dirname(item.name))
+
 count  = 0
 for item in items:
-    task_queue.put(item, -item.size)
-    count = count + 1
-    size = size + item.size
+    if item.name not in directories:
+        task_queue.put(item, -item.size)
+        count = count + 1
+        size = size + item.size
     
 total_size = size
 
