@@ -53,7 +53,7 @@ def worker():
                 size = size - item.size
         except:
             print "Download of ", item, "failed"
-            print sys.exc_info()[0]
+            print sys.exc_info()
         task_queue.task_done()
 
 print "Queuing bucket..."
@@ -64,6 +64,8 @@ for item in items:
     count = count + 1
     size = size + item.size
     
+total_size = size
+
 print "Running workers..."
 
 for i in range(args.workers):
@@ -73,9 +75,11 @@ for i in range(args.workers):
 
 print "Workers started..."
 
+start_time = time.time()
+
 while not task_queue.empty():
     time.sleep(0.1)
-    print "Downloading. ", task_queue.unfinished_tasks, " files remaining, (", count , ")",  humanize.bytes(size),"\r",
+    print "Downloading. ", task_queue.unfinished_tasks, " files remaining, (", count , ")",  humanize.bytes(size),"(",humanize.bytes(total_size),")", int(time.time()-start_time), "secs \r",
 
 
 task_queue.join()
