@@ -25,7 +25,7 @@ items = bucket.list()
 #items = [(i.name, i.size, i) for i in items]
 
 def download(key):
-    #if os.path.dirname(key.name) and not os.path.exists(os.path.dirname(key.name)):
+    #if os.path.dirname(key.name) and not os.path.exists5D5D(os.path.dirname(key.name)):
     # Try/except avoids threading conflict issues. Errors will still
     # be caught if this fails at the time of the attempted download.
     # Without this, occasionally two workers will contend, try to
@@ -34,8 +34,8 @@ def download(key):
         os.makedirs(os.path.dirname(key.name))
     except: 
         pass 
-    if not os.path.exists(key.name):
-        key.get_contents_to_filename(key.name)
+    pass
+    key.get_contents_to_filename(key.name)
 
 task_queue = Queue.PriorityQueue()
 lock = threading.Lock()
@@ -73,9 +73,13 @@ for item in items:
         continue
     if item.content_type == 'application/x-directory':
         continue
-    task_queue.put(item, -item.size)
-    count = count + 1
-    size = size + item.size
+    if os.path.exists(item.name):
+        if os.stat(item.name).st_size != item.size:
+            print item.name, ": Size mismatch", item.size, os.stat(item.name).st_size
+    else: 
+        task_queue.put(item, -item.size)
+        count = count + 1
+        size = size + item.size
     
 total_size = size
 
