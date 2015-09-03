@@ -13,6 +13,7 @@ DEBUG = False
 
 parser = argparse.ArgumentParser(description = "Download a bucket from S3")
 parser.add_argument('--workers', '-n', metavar='N', type=int, help="Number of worker threads", default = 100)
+parser.add_argument('--prefix', '-p', metavar='prefix', type=str, help="Prefix of files to get", default = "")
 parser.add_argument('bucket', metavar='<s3 bucket>', type=str, help="S3 bucket to download")
 
 args = parser.parse_args()
@@ -21,7 +22,7 @@ print "Workers", args.workers
 
 conn = S3Connection()
 bucket = conn.get_bucket(args.bucket)
-items = bucket.list()
+items = bucket.list(prefix=args.prefix)
 #items = [(i.name, i.size, i) for i in items]
 
 def download(key):
@@ -83,7 +84,7 @@ for item in items:
     
 total_size = size
 
-print "Running workers..."
+print "Running workers... (%s)".format(humanize.bytes(size)) 
 
 for i in range(args.workers):
     t = threading.Thread(target = worker)

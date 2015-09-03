@@ -13,10 +13,18 @@ Usage:
     s3clone [bucketname]
 
 Optionally, you can specify a number of worker threads. By default,
-this is 100.
+this is 100. Optionally, you can specify a prefix, if you would just
+like to grab a subdirectory from a bucket. Just be aware S3 is a
+little finicky about trailing slashes.
 
-This code works for me. It is not well tested, and it might not work
-for you. Biggest bucket I've tested on was 1 terabyte/15,000 files.
+I've used this many times, and this code works for me. It is not well
+tested, and so it might not work for you. If you run into issues, give
+me a pull request. The biggest bucket I've tested on was 1
+terabyte/15,000 files.
+
+It is designed to handle large numbers of small files. For small
+numbers of large files, there may be better tools. I don't do parallel
+multigets within a single file.
 
 Things to be aware of: 
 
