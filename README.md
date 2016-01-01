@@ -8,9 +8,9 @@ parallel. Files will be downloaded in order by size (from smallest to
 biggest), so download speed by # of files will slow down, while by MB
 will speed up. .
 
-Usage: 
+Usage:
 
-    s3clone [bucketname]
+    s3clone.py [-h] [--workers N] [--prefix prefix] <s3 bucket>
 
 Optionally, you can specify a number of worker threads. By default,
 this is 100. Optionally, you can specify a prefix, if you would just

@@ -1,8 +1,10 @@
-# Source: http://code.activestate.com/recipes/577081-humanized-representation-of-a-number-of-bytes/
+# Source:
+# http://code.activestate.com/recipes/577081-humanized-representation-of-a-number-of-bytes/
 # MIT license
 
 from __future__ import division
 import doctest
+
 
 def bytes(bytes, precision=1):
     """Return a humanized string representation of a number of bytes.
@@ -27,11 +29,11 @@ def bytes(bytes, precision=1):
     '1.3 GB'
     """
     abbrevs = (
-        (1<<50L, 'PB'),
-        (1<<40L, 'TB'),
-        (1<<30L, 'GB'),
-        (1<<20L, 'MB'),
-        (1<<10L, 'kB'),
+        (1 << 50L, 'PB'),
+        (1 << 40L, 'TB'),
+        (1 << 30L, 'GB'),
+        (1 << 20L, 'MB'),
+        (1 << 10L, 'kB'),
         (1, 'bytes')
     )
     if bytes == 1:
