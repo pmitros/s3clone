@@ -10,102 +10,103 @@ are better tools for that.
 
 import Queue
 import argparse
+import gzip
 import os
 import sys
 import threading
 import time
-
-from boto.s3.connection import S3Connection
+import shutil
+import boto3
+import itertools
 
 from s3clone import humanize
 
+import helpers
+
+
 DEBUG = False
 
-parser = argparse.ArgumentParser(description="Download a bucket from S3")
-parser.add_argument('--workers', '-n', metavar='N', type=int,
-                    help="Number of worker threads", default=100)
-parser.add_argument('--prefix', '-p', metavar='prefix', type=str,
-                    help="Prefix of files to get", default="")
-parser.add_argument('bucket', metavar='<s3 bucket>', type=str,
-                    help="S3 bucket to download")
+## Parse arguments and initialize connection to Boto
+args = helpers.parser.parse_args()
 
-args = parser.parse_args()
-
+print "gzip", args.gzip
+print "role", args.role
 print "Workers", args.workers
 
-conn = S3Connection()
-bucket = conn.get_bucket(args.bucket)
-items = bucket.list(prefix=args.prefix)
+if args.role:
+    session = boto3.Session(profile_name=args.role)
+else:
+    session = boto3.Session()
+client = session.client('s3')
 
+## Grab a list of all objects...
+object_list = []
+directories = set()
 
-def download(key):
-    '''
-    Download a single file from Amazon S3.
-    '''
-    # This try/except clause avoids threading conflict issues and
-    # similar. It is overly broad, but if it fails, wrrors will still
-    # be caught if this fails at the time of the attempted download.
-    # This avoids issues such as worker thread contention, where two
-    # try to create the same directory, as might happen with simply
-    # creating a dir if it does not exist.
-    try:
-        os.makedirs(os.path.dirname(key.name))
-    except:
-        pass
-    key.get_contents_to_filename(key.name)
+## Figure out directories, so we don't try to download them
+print "Queuing bucket..."
+for itemname, size in helpers.list_objects(client, args.bucket, args.prefix):
+    print itemname, size
+    object_list.append([itemname, size])
+    directories.add(os.path.dirname(itemname))
 
+## Enqueue objects 
 task_queue = Queue.PriorityQueue()
 lock = threading.Lock()
-size = 0
 
+total_bytes = 0
+count = 0
+
+for itemname, item_bytes in object_list:
+    # Omit directories
+    if itemname in directories or itemname.endswith('/'):
+        continue
+
+    # Skip over files which exist
+    filename = os.path.join(args.outputdir, itemname)
+    if os.path.exists(filename):
+        if os.stat(filename).st_size != item_bytes:
+            print itemname, ": Size mismatch",
+            print item_bytes, os.stat(filename).st_size
+        continue
+    if os.path.exists(filename+'.s3clonegz.gz'):
+        continue
+
+    # And add them to the queue....
+    task_queue.put((itemname, filename, size), -item_bytes)
+    count = count + 1
+    total_bytes = total_bytes + item_bytes
+
+
+## Start up the workers
+
+bytes_remaining = total_bytes
 
 def worker():
+    '''
+    Pull items out of the queue, and download them, until the queue is
+    empty
+    '''
     while True:
-        queue_item = task_queue.get()
+        (queue_item, filename, item_bytes) = task_queue.get()
         if DEBUG:
             print "Grabbing", queue_item
         try:
-            download(queue_item)
+            helpers.download(client, args.bucket, queue_item, filename, args.gzip)
             with lock:
-                global size
-                size = size - queue_item.size
+                global bytes_remaining
+                bytes_remaining = bytes_remaining - item_bytes
         except:
             print "Download of ", queue_item, "failed"
             print sys.exc_info()
         task_queue.task_done()
 
-print "Queuing bucket..."
 
-directories = set()
-
-for item in items:
-    directories.add(os.path.dirname(item.name))
-
-count = 0
-for item in items:
-    # S3 can't tell me if something is a bucket.
-    # I used 3 heuristics. I think the first two might be sufficient.
-    if item.name in directories:
-        continue
-    if item.name.endswith('/'):
-        continue
-    if item.content_type == 'application/x-directory':
-        continue
-    if os.path.exists(item.name):
-        if os.stat(item.name).st_size != item.size:
-            print item.name, ": Size mismatch",
-            print item.size, os.stat(item.name).st_size
-    else:
-        task_queue.put(item, -item.size)
-        count = count + 1
-        size = size + item.size
-
-total_size = size
-
-if total_size == 0:
+if total_bytes == 0:
     print "Empty bucket"
     sys.exit(-1)
-print "Running workers... (%s)".format(humanize.bytes(size))
+
+print "Running workers... (%s)".format(humanize.bytes(total_bytes))
 
 for i in range(args.workers):
     t = threading.Thread(target=worker)
@@ -120,10 +121,14 @@ while not task_queue.empty():
     time.sleep(0.1)
     print "Downloading. ", task_queue.unfinished_tasks,
     print " files remaining, (", count, ")",
-    print humanize.bytes(size), "(", humanize.bytes(total_size),
+    print humanize.bytes(bytes_remaining), "(", humanize.bytes(total_bytes),
     print ")", int(time.time()-start_time), "secs \r",
-
 
 task_queue.join()
 
-print "Done"
+print "Done!"
+
+
+
+
+
