@@ -21,7 +21,7 @@ import itertools
 
 from s3clone import humanize
 
-import helpers
+from s3clone import helpers
 
 
 DEBUG = False
@@ -44,11 +44,13 @@ object_list = []
 directories = set()
 
 ## Figure out directories, so we don't try to download them
-print "Queuing bucket..."
-for itemname, size in helpers.list_objects(client, args.bucket, args.prefix):
-    print itemname, size
+print "Queuing bucket...",
+for itemname, size in helpers.list_objects(client, args.bucket, args.prefix):  #, 50):itertools.islice(helpers.list_objects(client, args.bucket, args.prefix), 50):
+    #print itemname, size
+    print ".",
     object_list.append([itemname, size])
     directories.add(os.path.dirname(itemname))
+print
 
 ## Enqueue objects 
 task_queue = Queue.PriorityQueue()
@@ -127,8 +129,3 @@ while not task_queue.empty():
 task_queue.join()
 
 print "Done!"
-
-
-
-
-
